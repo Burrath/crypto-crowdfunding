@@ -53,8 +53,13 @@ contract CryptoCrowdfunding is Ownable {
     // Campaign max duration
     uint256 public campaignMaxDuration = 365 days;
     // Campaign claim fee & max fee
-    uint256 public fee = 100; // 1.00 %
+    uint256 public claimFee = 100; // 1.00 %
     uint256 public maxFee = 700; // 7.00 %
+
+    // Campaign launch fee
+    uint256 public launchFee = 0.002 ether;
+    // Collected fee amount
+    uint256 public collectedFeeAmount;
 
     constructor() {}
 
@@ -70,17 +75,21 @@ contract CryptoCrowdfunding is Ownable {
         uint32 _endAt,
         bool _isCustomTokenEnabled,
         address _customTokenAddress
-    ) external {
+    ) external payable {
         require(_startAt >= block.timestamp, "start at < now");
         require(_endAt >= _startAt, "end at < start at");
         require(
             _endAt <= block.timestamp + campaignMaxDuration,
             "end at > max duration"
         );
-        require(
-            !_isCustomTokenEnabled || msg.sender == owner(),
-            "Only the Admin can create a custom token campaign"
-        );
+
+        if (msg.sender != owner()) {
+            require(
+                _isCustomTokenEnabled,
+                "Only the Admin can create a custom token campaign"
+            );
+            require(msg.value >= launchFee, "Lauch fee not payed");
+        }
 
         count += 1;
         campaigns[count] = Campaign({
@@ -94,10 +103,15 @@ contract CryptoCrowdfunding is Ownable {
             claimed: false
         });
 
+        collectedFeeAmount += msg.value;
+
         emit Launch(count, msg.sender, _goal, _startAt, _endAt);
     }
 
-    function transferCampaign(uint256 _id, address _newCreator) external onlyCreator(_id) {
+    function transferCampaign(uint256 _id, address _newCreator)
+        external
+        onlyCreator(_id)
+    {
         Campaign memory campaign = campaigns[_id];
         campaign.creator = _newCreator;
 
@@ -158,7 +172,7 @@ contract CryptoCrowdfunding is Ownable {
 
         campaign.claimed = true;
 
-        uint256 campaignFee = (campaign.pledged * fee) / 10000;
+        uint256 campaignFee = (campaign.pledged * claimFee) / 10000;
         uint256 creatorAmount = campaign.pledged - campaignFee;
 
         if (campaign.isCustomTokenEnabled) {
@@ -168,7 +182,8 @@ contract CryptoCrowdfunding is Ownable {
                 creatorAmount
             );
         } else {
-            Address.sendValue(payable(owner()), campaignFee);
+            // Address.sendValue(payable(owner()), campaignFee);
+            collectedFeeAmount += campaignFee;
             Address.sendValue(payable(campaign.creator), creatorAmount);
         }
 
@@ -195,6 +210,11 @@ contract CryptoCrowdfunding is Ownable {
     function setFee(uint256 _fee) external onlyOwner {
         require(_fee <= maxFee, "Fee over the limit");
 
-        fee = _fee;
+        claimFee = _fee;
+    }
+
+    function widthdraw() external onlyOwner {
+        Address.sendValue(payable(owner()), collectedFeeAmount);
+        collectedFeeAmount = 0;
     }
 }
