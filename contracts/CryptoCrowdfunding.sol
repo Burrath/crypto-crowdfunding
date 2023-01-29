@@ -13,7 +13,6 @@ contract CryptoCrowdfunding is Ownable {
         uint32 startAt,
         uint32 endAt
     );
-    event Cancel(uint256 indexed id);
     event Pledge(uint256 indexed id, address indexed caller, uint256 amount);
     event Claim(uint256 indexed id);
     event Refund(uint256 indexed id, address indexed caller, uint256 amount);
@@ -118,18 +117,6 @@ contract CryptoCrowdfunding is Ownable {
         campaign.creator = _newCreator;
 
         emit TransferCampaign(_id, msg.sender, _newCreator);
-    }
-
-    function cancel(uint256 _id) external onlyCreator(_id) {
-        Campaign memory campaign = campaigns[_id];
-        require(
-            block.timestamp < campaign.startAt,
-            "Error: campaign already started."
-        );
-
-        delete campaigns[_id];
-
-        emit Cancel(_id);
     }
 
     function pledge(uint256 _id) external payable {
