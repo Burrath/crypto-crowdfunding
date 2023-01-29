@@ -15,7 +15,6 @@ contract CryptoCrowdfunding is Ownable {
     );
     event Cancel(uint256 indexed id);
     event Pledge(uint256 indexed id, address indexed caller, uint256 amount);
-    event Unpledge(uint256 indexed id, address indexed caller, uint256 amount);
     event Claim(uint256 indexed id);
     event Refund(uint256 indexed id, address indexed caller, uint256 amount);
     event TransferCampaign(
@@ -35,10 +34,6 @@ contract CryptoCrowdfunding is Ownable {
         uint32 startAt;
         // Timestamp of end of campaign
         uint32 endAt;
-        // True if campaign uses a custom token
-        bool isCustomTokenEnabled;
-        // Set to dead/zero address if not custom token
-        address customTokenAddress;
         // True if goal was reached and creator has claimed the tokens.
         bool claimed;
     }
@@ -53,42 +48,46 @@ contract CryptoCrowdfunding is Ownable {
     // Campaign max duration
     uint256 public campaignMaxDuration = 365 days;
     // Campaign claim fee & max fee
-    uint256 public claimFee = 100; // 1.00 %
-    uint256 public maxFee = 700; // 7.00 %
+    uint256 public claimFee = 300; // 3.00 %
+    uint256 public maxFee = 1000; // 10.00 %
 
     // Campaign launch fee
-    uint256 public launchFee = 0.002 ether;
-    // Collected fee amount
-    uint256 public collectedFeeAmount;
+    uint256 public launchFee = 0.01 ether;
 
     constructor() {}
 
     modifier onlyCreator(uint256 _id) {
         Campaign memory campaign = campaigns[_id];
-        require(campaign.creator == msg.sender, "not creator");
+        require(
+            campaign.creator == msg.sender,
+            "Can't perform this action, sender is not the owner of the Campaign."
+        );
         _;
     }
 
     function launch(
         uint256 _goal,
         uint32 _startAt,
-        uint32 _endAt,
-        bool _isCustomTokenEnabled,
-        address _customTokenAddress
+        uint32 _endAt
     ) external payable {
-        require(_startAt >= block.timestamp, "start at < now");
-        require(_endAt >= _startAt, "end at < start at");
         require(
-            _endAt <= block.timestamp + campaignMaxDuration,
-            "end at > max duration"
+            _startAt >= block.timestamp,
+            "Error: lauch time needs to be greater than now."
+        );
+        require(
+            _endAt >= _startAt,
+            "Error: end date needs to be grater than start date."
+        );
+        require(
+            _endAt - _startAt <= campaignMaxDuration,
+            "Error: campaign can't last more than 1 year"
         );
 
         if (msg.sender != owner()) {
             require(
-                _isCustomTokenEnabled,
-                "Only the Admin can create a custom token campaign"
+                msg.value >= launchFee,
+                "Error: Lauch fee not payed. Send more ETH"
             );
-            require(msg.value >= launchFee, "Lauch fee not payed");
         }
 
         count += 1;
@@ -98,12 +97,11 @@ contract CryptoCrowdfunding is Ownable {
             pledged: 0,
             startAt: _startAt,
             endAt: _endAt,
-            isCustomTokenEnabled: _isCustomTokenEnabled,
-            customTokenAddress: _customTokenAddress,
             claimed: false
         });
 
-        collectedFeeAmount += msg.value;
+        // collectedFeeAmount += msg.value;
+        Address.sendValue(payable(owner()), msg.value);
 
         emit Launch(count, msg.sender, _goal, _startAt, _endAt);
     }
@@ -120,101 +118,83 @@ contract CryptoCrowdfunding is Ownable {
 
     function cancel(uint256 _id) external onlyCreator(_id) {
         Campaign memory campaign = campaigns[_id];
-        require(block.timestamp < campaign.startAt, "started");
+        require(
+            block.timestamp < campaign.startAt,
+            "Error: campaign already started."
+        );
 
         delete campaigns[_id];
 
         emit Cancel(_id);
     }
 
-    function pledge(uint256 _id, uint256 _amount) external payable {
+    function pledge(uint256 _id) external payable {
+        uint256 _amount = msg.value;
         Campaign storage campaign = campaigns[_id];
-        require(block.timestamp >= campaign.startAt, "not started");
-        require(block.timestamp <= campaign.endAt, "ended");
+        require(
+            block.timestamp >= campaign.startAt,
+            "Error: campaign is not started yet."
+        );
+        require(
+            block.timestamp <= campaign.endAt,
+            "Error: campaign is already ended."
+        );
 
         campaign.pledged += _amount;
         pledgedAmount[_id][msg.sender] += _amount;
 
-        if (campaign.isCustomTokenEnabled) {
-            IERC20(campaign.customTokenAddress).transferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
-        } else {
-            require(msg.value >= _amount, "sent amount mismatch");
-        }
-
         emit Pledge(_id, msg.sender, _amount);
-    }
-
-    function unpledge(uint256 _id, uint256 _amount) external {
-        Campaign storage campaign = campaigns[_id];
-        require(block.timestamp <= campaign.endAt, "ended");
-
-        campaign.pledged -= _amount;
-        pledgedAmount[_id][msg.sender] -= _amount;
-
-        if (campaign.isCustomTokenEnabled) {
-            IERC20(campaign.customTokenAddress).transfer(msg.sender, _amount);
-        } else {
-            Address.sendValue(payable(msg.sender), _amount);
-        }
-
-        emit Unpledge(_id, msg.sender, _amount);
     }
 
     function claim(uint256 _id) external onlyCreator(_id) {
         Campaign storage campaign = campaigns[_id];
-        require(block.timestamp > campaign.endAt, "not ended");
-        require(campaign.pledged >= campaign.goal, "pledged < goal");
-        require(!campaign.claimed, "claimed");
+        require(
+            block.timestamp > campaign.endAt,
+            "Error: campaign is not ended yet."
+        );
+        require(
+            campaign.pledged >= campaign.goal,
+            "Error: pledged amout didn't reach the campaign goal."
+        );
+        require(!campaign.claimed, "Error: already claimed.");
 
         campaign.claimed = true;
 
         uint256 campaignFee = (campaign.pledged * claimFee) / 10000;
         uint256 creatorAmount = campaign.pledged - campaignFee;
 
-        if (campaign.isCustomTokenEnabled) {
-            IERC20(campaign.customTokenAddress).transfer(owner(), campaignFee);
-            IERC20(campaign.customTokenAddress).transfer(
-                campaign.creator,
-                creatorAmount
-            );
-        } else {
-            // Address.sendValue(payable(owner()), campaignFee);
-            collectedFeeAmount += campaignFee;
-            Address.sendValue(payable(campaign.creator), creatorAmount);
-        }
+        Address.sendValue(payable(owner()), campaignFee);
+        Address.sendValue(payable(campaign.creator), creatorAmount);
 
         emit Claim(_id);
     }
 
     function refund(uint256 _id) external {
         Campaign memory campaign = campaigns[_id];
-        require(block.timestamp > campaign.endAt, "not ended");
-        require(campaign.pledged < campaign.goal, "pledged >= goal");
+        require(
+            block.timestamp > campaign.endAt,
+            "Error: campaing didn't end yet."
+        );
+        require(
+            campaign.pledged < campaign.goal,
+            "Error: plaedged amount exceeds the campaign goal."
+        );
 
         uint256 bal = pledgedAmount[_id][msg.sender];
         pledgedAmount[_id][msg.sender] = 0;
 
-        if (campaign.isCustomTokenEnabled) {
-            IERC20(campaign.customTokenAddress).transfer(msg.sender, bal);
-        } else {
-            Address.sendValue(payable(msg.sender), bal);
-        }
+        Address.sendValue(payable(msg.sender), bal);
 
         emit Refund(_id, msg.sender, bal);
     }
 
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee <= maxFee, "Fee over the limit");
+        require(_fee <= maxFee, "Error: fee can't go over the fee limit.");
 
         claimFee = _fee;
     }
 
-    function widthdraw() external onlyOwner {
-        Address.sendValue(payable(owner()), collectedFeeAmount);
-        collectedFeeAmount = 0;
+    function widthdraw(uint256 _amount) external onlyOwner {
+        Address.sendValue(payable(owner()), _amount);
     }
 }
