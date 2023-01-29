@@ -41,6 +41,10 @@ contract CryptoCrowdfunding is Ownable {
     // Total count of campaigns created.
     // It is also used to generate id for new campaigns.
     uint256 public count;
+    // Total money raised
+    uint256 public moneyCount;
+    // Total number of contributions
+    uint256 public contributionCount;
     // Mapping from id to Campaign
     mapping(uint256 => Campaign) public campaigns;
     // Mapping from campaign id => pledger => amount pledged
@@ -143,6 +147,8 @@ contract CryptoCrowdfunding is Ownable {
         campaign.pledged += _amount;
         pledgedAmount[_id][msg.sender] += _amount;
 
+        contributionCount += 1;
+
         emit Pledge(_id, msg.sender, _amount);
     }
 
@@ -165,6 +171,8 @@ contract CryptoCrowdfunding is Ownable {
 
         Address.sendValue(payable(owner()), campaignFee);
         Address.sendValue(payable(campaign.creator), creatorAmount);
+
+        moneyCount += campaign.pledged;
 
         emit Claim(_id);
     }
