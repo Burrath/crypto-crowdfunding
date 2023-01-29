@@ -79,11 +79,17 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
-    rinkeby: {
+    // rinkeby: {
+    //   provider: function () {
+    //     return new HDWalletProvider(mnemonic, process.env.ETHEREUM_RINKEBY_RPC);
+    //   },
+    //   network_id: 4,
+    // },
+    goerli: {
       provider: function () {
-        return new HDWalletProvider(mnemonic, process.env.ETHEREUM_RINKEBY_RPC);
+        return new HDWalletProvider(mnemonic, process.env.ETHEREUM_GOERLI_RPC);
       },
-      network_id: 4,
+      network_id: 5,
     },
     polygon: {
       provider: function () {

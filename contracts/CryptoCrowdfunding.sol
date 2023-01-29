@@ -55,7 +55,7 @@ contract CryptoCrowdfunding is Ownable {
     uint256 public maxFee = 1000; // 10.00 %
 
     // Campaign launch fee
-    uint256 public launchFee = 0.01 ether;
+    uint256 public launchFee = 0.001 ether;
 
     constructor() {}
 
