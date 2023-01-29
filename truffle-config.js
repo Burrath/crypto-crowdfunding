@@ -18,12 +18,20 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
+require("dotenv").config();
+
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+
+const mnemonic = process.env.WALLET_MNEMONIC;
 
 module.exports = {
+  // To verify your contract run
+  // truffle run verify <ContractName> --network <network>
+  plugins: ["truffle-plugin-verify", "truffle-plugin-stdjsonin"],
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_APY_KEY,
+    polygonscan: process.env.POLYGONSCAN_APY_KEY,
+  },
   /**
    * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
@@ -71,6 +79,24 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+    rinkeby: {
+      provider: function () {
+        return new HDWalletProvider(mnemonic, process.env.ETHEREUM_RINKEBY_RPC);
+      },
+      network_id: 4,
+    },
+    polygon: {
+      provider: function () {
+        return new HDWalletProvider(mnemonic, process.env.POLYGON_MAINNET_RPC);
+      },
+      network_id: 137,
+      confirmations: 20,
+      skipDryRun: true,
+      gas: 18878420,
+      gasPrice: 200000000000,
+      networkCheckTimeout: 10000000,
+      timeoutBlocks: 200,
+    },
   },
 
   // Set default mocha options here, use special reporters etc.
@@ -81,16 +107,16 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.8.10",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.8.10", // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
-      //  optimizer: {
-      //    enabled: false,
-      //    runs: 200
-      //  },
+      optimizer: {
+        enabled: false,
+        runs: 200,
+      },
       //  evmVersion: "byzantium"
       // }
-    }
+    },
   },
 
   // Truffle DB is currently disabled by default; to enable it, change enabled:
@@ -100,17 +126,17 @@ module.exports = {
   // NOTE: It is not possible to migrate your contracts to truffle DB and you should
   // make a backup of your artifacts to a safe location before enabling this feature.
   //
-  // After you backed up your artifacts you can utilize db by running migrate as follows: 
+  // After you backed up your artifacts you can utilize db by running migrate as follows:
   // $ truffle migrate --reset --compile-all
   //
   // db: {
-    // enabled: false,
-    // host: "127.0.0.1",
-    // adapter: {
-    //   name: "sqlite",
-    //   settings: {
-    //     directory: ".db"
-    //   }
-    // }
+  // enabled: false,
+  // host: "127.0.0.1",
+  // adapter: {
+  //   name: "sqlite",
+  //   settings: {
+  //     directory: ".db"
+  //   }
+  // }
   // }
 };
