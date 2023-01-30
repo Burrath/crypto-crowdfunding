@@ -73,10 +73,8 @@ contract CryptoCrowdfunding is Ownable {
         uint32 _startAt,
         uint32 _endAt
     ) external payable {
-        require(
-            _startAt >= block.timestamp,
-            "Error: lauch time needs to be greater than now."
-        );
+        if (_startAt < block.timestamp) _startAt = uint32(block.timestamp);
+
         require(
             _endAt >= _startAt,
             "Error: end date needs to be grater than start date."
@@ -103,7 +101,6 @@ contract CryptoCrowdfunding is Ownable {
             claimed: false
         });
 
-        // collectedFeeAmount += msg.value;
         Address.sendValue(payable(owner()), msg.value);
 
         emit Launch(count, msg.sender, _goal, _startAt, _endAt);
