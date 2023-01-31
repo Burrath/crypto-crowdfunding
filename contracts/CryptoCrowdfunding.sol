@@ -51,7 +51,7 @@ contract CryptoCrowdfunding is Ownable {
     // Campaign max duration
     uint256 public campaignMaxDuration = 365 days;
     // Campaign claim fee & max fee
-    uint256 public claimFee = 300; // 3.00 %
+    uint256 public claimFee = 500; // 5.00 %
     uint256 public maxFee = 1000; // 10.00 %
 
     // Campaign launch fee
