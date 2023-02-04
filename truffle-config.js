@@ -91,6 +91,12 @@ module.exports = {
       },
       network_id: 5,
     },
+    ethereum: {
+      provider: function () {
+        return new HDWalletProvider(mnemonic, process.env.ETHEREUM_MAINNET_RPC);
+      },
+      network_id: 1,
+    },
     polygon: {
       provider: function () {
         return new HDWalletProvider(mnemonic, process.env.POLYGON_MAINNET_RPC);

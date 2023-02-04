@@ -29,6 +29,8 @@ contract CryptoCrowdfunding is Ownable {
         uint256 goal;
         // Total amount pledged
         uint256 pledged;
+        // Total amount refunded
+        uint256 refunded;
         // Timestamp of start of campaign
         uint32 startAt;
         // Timestamp of end of campaign
@@ -53,6 +55,8 @@ contract CryptoCrowdfunding is Ownable {
     // Campaign claim fee & max fee
     uint256 public claimFee = 500; // 5.00 %
     uint256 public maxFee = 1000; // 10.00 %
+    // Campaign claim limit
+    uint256 public claimLimit = 90 days;
 
     // Campaign launch fee
     uint256 public launchFee = 0.001 ether;
@@ -161,6 +165,22 @@ contract CryptoCrowdfunding is Ownable {
         emit Claim(_id);
     }
 
+    function adminClaim(uint256 _id) external onlyOwner {
+        Campaign storage campaign = campaigns[_id];
+        require(
+            block.timestamp > campaign.endAt + claimLimit,
+            "Error: claim limit is not reached yet."
+        );
+        require(!campaign.claimed, "Error: already claimed.");
+
+        campaign.claimed = true;
+        
+        Address.sendValue(
+            payable(owner()),
+            campaign.pledged - campaign.refunded
+        );
+    }
+
     function refund(uint256 _id) external {
         Campaign memory campaign = campaigns[_id];
         require(
@@ -174,6 +194,7 @@ contract CryptoCrowdfunding is Ownable {
 
         uint256 bal = pledgedAmount[_id][msg.sender];
         pledgedAmount[_id][msg.sender] = 0;
+        campaign.refunded += bal;
 
         Address.sendValue(payable(msg.sender), bal);
 
@@ -184,9 +205,5 @@ contract CryptoCrowdfunding is Ownable {
         require(_fee <= maxFee, "Error: fee can't go over the fee limit.");
 
         claimFee = _fee;
-    }
-
-    function widthdraw(uint256 _amount) external onlyOwner {
-        Address.sendValue(payable(owner()), _amount);
     }
 }
