@@ -56,7 +56,7 @@ contract CryptoCrowdfunding is Ownable {
     uint256 public claimFee = 500; // 5.00 %
     uint256 public maxFee = 1000; // 10.00 %
     // Campaign claim limit
-    uint256 public claimLimit = 90 days;
+    uint256 public claimLimit = 1 days;
 
     // Campaign launch fee
     uint256 public launchFee = 0.001 ether;
@@ -174,7 +174,7 @@ contract CryptoCrowdfunding is Ownable {
         require(!campaign.claimed, "Error: already claimed.");
 
         campaign.claimed = true;
-        
+
         Address.sendValue(
             payable(owner()),
             campaign.pledged - campaign.refunded
