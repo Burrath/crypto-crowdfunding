@@ -191,6 +191,7 @@ contract CryptoCrowdfunding is Ownable {
             campaign.pledged < campaign.goal,
             "Error: plaedged amount exceeds the campaign goal."
         );
+        require(!campaign.claimed, "Error: campaign already claimed.");
 
         uint256 bal = pledgedAmount[_id][msg.sender];
         pledgedAmount[_id][msg.sender] = 0;
