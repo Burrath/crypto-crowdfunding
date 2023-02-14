@@ -10,8 +10,8 @@ contract CryptoCrowdfunding is Ownable {
         uint256 indexed id,
         address indexed creator,
         uint256 goal,
-        uint32 startAt,
-        uint32 endAt
+        uint256 startAt,
+        uint256 endAt
     );
     event Pledge(uint256 indexed id, address indexed caller, uint256 amount);
     event Claim(uint256 indexed id);
@@ -32,15 +32,14 @@ contract CryptoCrowdfunding is Ownable {
         // Total amount refunded
         uint256 refunded;
         // Timestamp of start of campaign
-        uint32 startAt;
+        uint256 startAt;
         // Timestamp of end of campaign
-        uint32 endAt;
+        uint256 endAt;
         // True if goal was reached and creator has claimed the tokens.
         bool claimed;
     }
 
-    // Total count of campaigns created.
-    // It is also used to generate id for new campaigns.
+    // Total count of campaigns created. It is also used to generate id for new campaigns.
     uint256 public count;
     // Total money raised
     uint256 public moneyCount;
@@ -56,10 +55,10 @@ contract CryptoCrowdfunding is Ownable {
     uint256 public claimFee = 500; // 5.00 %
     uint256 public maxFee = 1000; // 10.00 %
     // Campaign claim limit
-    uint256 public claimLimit = 1 days;
+    uint256 public claimLimit = 1 days; // todo change to 90 days
 
     // Campaign launch fee
-    uint256 public launchFee = 0.001 ether;
+    uint256 public launchFee = 0.001 ether; // todo change to 15$
 
     constructor() {}
 
@@ -74,10 +73,10 @@ contract CryptoCrowdfunding is Ownable {
 
     function launch(
         uint256 _goal,
-        uint32 _startAt,
-        uint32 _endAt
+        uint256 _startAt,
+        uint256 _endAt
     ) external payable {
-        if (_startAt < block.timestamp) _startAt = uint32(block.timestamp);
+        if (_startAt < block.timestamp) _startAt = block.timestamp;
 
         require(
             _endAt >= _startAt,
@@ -100,6 +99,7 @@ contract CryptoCrowdfunding is Ownable {
             creator: msg.sender,
             goal: _goal,
             pledged: 0,
+            refunded: 0,
             startAt: _startAt,
             endAt: _endAt,
             claimed: false
