@@ -42,9 +42,9 @@ contract CryptoCrowdfunding is Ownable {
     // Total count of campaigns created. It is also used to generate id for new campaigns.
     uint256 public count;
     // Total money raised
-    uint256 public moneyCount;
+    uint256 public globalMoneyCount;
     // Total number of contributions
-    uint256 public contributionCount;
+    uint256 public globalContributionCount;
     // Mapping from id to Campaign
     mapping(uint256 => Campaign) public campaigns;
     // Mapping from campaign id => pledger => amount pledged
@@ -65,7 +65,7 @@ contract CryptoCrowdfunding is Ownable {
     modifier onlyCreator(uint256 _id) {
         Campaign memory campaign = campaigns[_id];
         require(
-            campaign.creator == msg.sender,
+            campaign.creator == _msgSender(),
             "Can't perform this action, sender is not the owner of the Campaign."
         );
         _;
@@ -87,7 +87,7 @@ contract CryptoCrowdfunding is Ownable {
             "Error: campaign can't last more than 1 year"
         );
 
-        if (msg.sender != owner()) {
+        if (_msgSender() != owner()) {
             require(
                 msg.value >= launchFee,
                 "Error: Lauch fee not payed. Send more ETH"
@@ -96,7 +96,7 @@ contract CryptoCrowdfunding is Ownable {
 
         count += 1;
         campaigns[count] = Campaign({
-            creator: msg.sender,
+            creator: _msgSender(),
             goal: _goal,
             pledged: 0,
             refunded: 0,
@@ -107,7 +107,7 @@ contract CryptoCrowdfunding is Ownable {
 
         Address.sendValue(payable(owner()), msg.value);
 
-        emit Launch(count, msg.sender, _goal, _startAt, _endAt);
+        emit Launch(count, _msgSender(), _goal, _startAt, _endAt);
     }
 
     function transferCampaign(uint256 _id, address _newCreator)
@@ -117,7 +117,7 @@ contract CryptoCrowdfunding is Ownable {
         Campaign memory campaign = campaigns[_id];
         campaign.creator = _newCreator;
 
-        emit TransferCampaign(_id, msg.sender, _newCreator);
+        emit TransferCampaign(_id, _msgSender(), _newCreator);
     }
 
     function pledge(uint256 _id) external payable {
@@ -133,11 +133,11 @@ contract CryptoCrowdfunding is Ownable {
         );
 
         campaign.pledged += _amount;
-        pledgedAmount[_id][msg.sender] += _amount;
+        pledgedAmount[_id][_msgSender()] += _amount;
 
-        contributionCount += 1;
+        globalContributionCount += 1;
 
-        emit Pledge(_id, msg.sender, _amount);
+        emit Pledge(_id, _msgSender(), _amount);
     }
 
     function claim(uint256 _id) external onlyCreator(_id) {
@@ -160,9 +160,31 @@ contract CryptoCrowdfunding is Ownable {
         Address.sendValue(payable(owner()), campaignFee);
         Address.sendValue(payable(campaign.creator), creatorAmount);
 
-        moneyCount += campaign.pledged;
+        globalMoneyCount += campaign.pledged;
 
         emit Claim(_id);
+    }
+
+    function refund(uint256 _id) external {
+        Campaign memory campaign = campaigns[_id];
+        require(
+            block.timestamp > campaign.endAt,
+            "Error: campaing didn't end yet."
+        );
+        require(
+            campaign.pledged < campaign.goal,
+            "Error: campaign reached the goal."
+        );
+        require(!campaign.claimed, "Error: campaign already claimed.");
+
+        uint256 bal = pledgedAmount[_id][_msgSender()];
+        pledgedAmount[_id][_msgSender()] = 0;
+
+        campaign.refunded += bal;
+
+        Address.sendValue(payable(_msgSender()), bal);
+
+        emit Refund(_id, _msgSender(), bal);
     }
 
     function adminClaim(uint256 _id) external onlyOwner {
@@ -179,27 +201,6 @@ contract CryptoCrowdfunding is Ownable {
             payable(owner()),
             campaign.pledged - campaign.refunded
         );
-    }
-
-    function refund(uint256 _id) external {
-        Campaign memory campaign = campaigns[_id];
-        require(
-            block.timestamp > campaign.endAt,
-            "Error: campaing didn't end yet."
-        );
-        require(
-            campaign.pledged < campaign.goal,
-            "Error: plaedged amount exceeds the campaign goal."
-        );
-        require(!campaign.claimed, "Error: campaign already claimed.");
-
-        uint256 bal = pledgedAmount[_id][msg.sender];
-        pledgedAmount[_id][msg.sender] = 0;
-        campaign.refunded += bal;
-
-        Address.sendValue(payable(msg.sender), bal);
-
-        emit Refund(_id, msg.sender, bal);
     }
 
     function setFee(uint256 _fee) external onlyOwner {
