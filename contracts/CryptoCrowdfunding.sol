@@ -55,10 +55,10 @@ contract CryptoCrowdfunding is Ownable {
     uint256 public claimFee = 500; // 5.00 %
     uint256 public maxFee = 1000; // 10.00 %
     // Campaign claim limit
-    uint256 public claimLimit = 1 days; // todo change to 90 days
+    uint256 public claimLimit = 90 days;
 
     // Campaign launch fee
-    uint256 public launchFee = 0.001 ether; // todo change to 15$
+    uint256 public launchFee = 0.003 ether;
 
     constructor() {}
 
@@ -110,10 +110,10 @@ contract CryptoCrowdfunding is Ownable {
         emit Launch(count, _msgSender(), _goal, _startAt, _endAt);
     }
 
-    function transferCampaign(uint256 _id, address _newCreator)
-        external
-        onlyCreator(_id)
-    {
+    function transferCampaign(
+        uint256 _id,
+        address _newCreator
+    ) external onlyCreator(_id) {
         Campaign memory campaign = campaigns[_id];
         campaign.creator = _newCreator;
 
@@ -203,9 +203,10 @@ contract CryptoCrowdfunding is Ownable {
         );
     }
 
-    function setFee(uint256 _fee) external onlyOwner {
+    function setFee(uint256 _fee, uint256 _launchFee) external onlyOwner {
         require(_fee <= maxFee, "Error: fee can't go over the fee limit.");
 
         claimFee = _fee;
+        launchFee = _launchFee;
     }
 }
