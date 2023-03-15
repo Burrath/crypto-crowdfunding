@@ -6,21 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract CryptoCrowdfunding is Ownable {
-    event Launch(
-        uint256 indexed id,
-        address indexed creator,
-        uint256 goal,
-        uint256 startAt,
-        uint256 endAt
-    );
+    event Launch(uint256 indexed id, address indexed creator, uint256 goal, uint256 startAt, uint256 endAt);
     event Pledge(uint256 indexed id, address indexed caller, uint256 amount);
     event Claim(uint256 indexed id);
     event Refund(uint256 indexed id, address indexed caller, uint256 amount);
-    event TransferCampaign(
-        uint256 indexed id,
-        address indexed caller,
-        address indexed newCreator
-    );
+    event TransferCampaign(uint256 indexed id, address indexed caller, address indexed newCreator);
 
     struct Campaign {
         // Creator of campaign
@@ -56,7 +46,6 @@ contract CryptoCrowdfunding is Ownable {
     uint256 public maxFee = 1000; // 10.00 %
     // Campaign claim limit
     uint256 public claimLimit = 90 days;
-
     // Campaign launch fee
     uint256 public launchFee = 0.003 ether;
 
@@ -71,11 +60,7 @@ contract CryptoCrowdfunding is Ownable {
         _;
     }
 
-    function launch(
-        uint256 _goal,
-        uint256 _startAt,
-        uint256 _endAt
-    ) external payable {
+    function launch(uint256 _goal,uint256 _startAt,uint256 _endAt) external payable {
         if (_startAt < block.timestamp) _startAt = block.timestamp;
 
         require(
@@ -110,10 +95,7 @@ contract CryptoCrowdfunding is Ownable {
         emit Launch(count, _msgSender(), _goal, _startAt, _endAt);
     }
 
-    function transferCampaign(
-        uint256 _id,
-        address _newCreator
-    ) external onlyCreator(_id) {
+    function transferCampaign(uint256 _id, address _newCreator) external onlyCreator(_id) {
         Campaign memory campaign = campaigns[_id];
         campaign.creator = _newCreator;
 
