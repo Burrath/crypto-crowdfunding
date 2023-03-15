@@ -2,10 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
-contract CryptoCrowdfunding is Ownable {
+contract AngelBoost is Ownable {
     event Launch(uint256 indexed id, address indexed creator, uint256 goal, uint256 startAt, uint256 endAt);
     event Pledge(uint256 indexed id, address indexed caller, uint256 amount);
     event Claim(uint256 indexed id);
@@ -90,7 +88,7 @@ contract CryptoCrowdfunding is Ownable {
             claimed: false
         });
 
-        Address.sendValue(payable(owner()), msg.value);
+        sendValue(payable(owner()), msg.value);
 
         emit Launch(count, _msgSender(), _goal, _startAt, _endAt);
     }
@@ -139,8 +137,8 @@ contract CryptoCrowdfunding is Ownable {
         uint256 campaignFee = (campaign.pledged * claimFee) / 10000;
         uint256 creatorAmount = campaign.pledged - campaignFee;
 
-        Address.sendValue(payable(owner()), campaignFee);
-        Address.sendValue(payable(campaign.creator), creatorAmount);
+        sendValue(payable(owner()), campaignFee);
+        sendValue(payable(campaign.creator), creatorAmount);
 
         globalMoneyCount += campaign.pledged;
 
@@ -164,7 +162,7 @@ contract CryptoCrowdfunding is Ownable {
 
         campaign.refunded += bal;
 
-        Address.sendValue(payable(_msgSender()), bal);
+        sendValue(payable(_msgSender()), bal);
 
         emit Refund(_id, _msgSender(), bal);
     }
@@ -179,7 +177,7 @@ contract CryptoCrowdfunding is Ownable {
 
         campaign.claimed = true;
 
-        Address.sendValue(
+        sendValue(
             payable(owner()),
             campaign.pledged - campaign.refunded
         );
@@ -190,5 +188,12 @@ contract CryptoCrowdfunding is Ownable {
 
         claimFee = _fee;
         launchFee = _launchFee;
+    }
+
+    function sendValue(address payable recipient, uint256 amount) internal {
+        require(address(this).balance >= amount, "Address: insufficient balance");
+
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "Address: unable to send value, recipient may have reverted");
     }
 }

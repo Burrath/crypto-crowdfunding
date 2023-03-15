@@ -1,4 +1,4 @@
-const CryptoCrowdfunding = artifacts.require("CryptoCrowdfunding");
+const AngelBoost = artifacts.require("AngelBoost");
 // const Azuki = artifacts.require("Azuki");
 // const BetaKreativ = artifacts.require("BetaKreativ");
 
@@ -31,7 +31,7 @@ contract("test", async (accounts) => {
     //   from: accounts[2],
     // });
 
-    contract = await CryptoCrowdfunding.new({
+    contract = await AngelBoost.new({
       from: accounts[0],
     });
 

@@ -1,5 +1,5 @@
-const CryptoCrowdfunding = artifacts.require("CryptoCrowdfunding");
+const AngelBoost = artifacts.require("AngelBoost");
 
 module.exports = function (deployer) {
-  deployer.deploy(CryptoCrowdfunding);
+  deployer.deploy(AngelBoost);
 };

@@ -96,6 +96,7 @@ module.exports = {
         return new HDWalletProvider(mnemonic, process.env.ETHEREUM_MAINNET_RPC);
       },
       network_id: 1,
+      gasPrice: 20000000000
     },
     polygon: {
       provider: function () {
