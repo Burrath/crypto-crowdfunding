@@ -94,7 +94,7 @@ contract AngelBoost is Ownable {
     }
 
     function transferCampaign(uint256 _id, address _newCreator) external onlyCreator(_id) {
-        Campaign memory campaign = campaigns[_id];
+        Campaign storage campaign = campaigns[_id];
         campaign.creator = _newCreator;
 
         emit TransferCampaign(_id, _msgSender(), _newCreator);
@@ -146,7 +146,7 @@ contract AngelBoost is Ownable {
     }
 
     function refund(uint256 _id) external {
-        Campaign memory campaign = campaigns[_id];
+        Campaign storage campaign = campaigns[_id];
         require(
             block.timestamp > campaign.endAt,
             "Error: campaing didn't end yet."
